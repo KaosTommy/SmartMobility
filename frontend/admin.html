@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zootropolis | Urban Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        :root { --primary: #2563eb; --sidebar: #0f172a; --bg-light: #f8fafc; --surface: #ffffff; --text-dark: #1e293b; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background-color: var(--sidebar); color: white; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .nav-item { padding: 15px; margin-bottom: 10px; border-radius: 12px; cursor: pointer; font-weight: 600; color: #94a3b8; }
+        .nav-item.active { background-color: rgba(255,255,255,0.1); color: white; }
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; box-sizing: border-box; }
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: var(--surface); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; }
+        .kpi-value { font-size: 32px; font-weight: 900; color: var(--primary); display: block;}
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; height: 450px; }
+        .card { background: var(--surface); border-radius: 20px; padding: 25px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+        #admin-map { flex-grow: 1; border-radius: 12px; width: 100%; z-index: 1; margin-bottom: 15px;}
+        .action-btn { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; }
+        table { width: 100%; border-collapse: collapse; } th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div style="font-size: 24px; font-weight: 900; margin-bottom: 40px;">🏛️ Comune</div>
+        <div class="nav-item active">📈 Urban Monitoring</div>
+        <div class="nav-item" onclick="window.print()">📄 Esporta Report PDF</div>
+        <button style="margin-top: auto; padding: 15px; background: #ef4444; color: white; border-radius: 10px; border:none; cursor:pointer;" onclick="window.location.href='auth.html'">Disconnetti</button>
+    </div>
+    
+    <div class="main-content">
+        <h1 style="margin-top:0;">Cruscotto Amministrazione Zootropolis</h1>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card"><span class="kpi-value" id="kpi-rentals">1.245</span><span style="color:#64748b; font-weight:bold;">Noleggi Mensili</span></div>
+            <div class="kpi-card"><span class="kpi-value" id="kpi-ztl">1</span><span style="color:#64748b; font-weight:bold;">ZTL Attive</span></div>
+            <div class="kpi-card"><span class="kpi-value" id="kpi-guasti">0</span><span style="color:#64748b; font-weight:bold;">Guasti Aperti nella Rete</span></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3 style="margin-top:0;">Monitoraggio Flotta e Operatori</h3>
+                <div style="position: relative; height: 150px; margin-bottom: 20px;"><canvas id="trafficChart"></canvas></div>
+                
+                <h3 style="margin-top:10px;">Guasti in Tempo Reale</h3>
+                <div style="overflow-y:auto;">
+                    <table>
+                        <thead><tr><th>Veicolo</th><th>Problema Rilevato</th></tr></thead>
+                        <tbody id="admin-ticket-list"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3 style="margin-top:0;">Regolamentazione Territorio (IF-21)</h3>
+                <div id="admin-map"></div>
+                <button class="action-btn" style="background:#ef4444;" onclick="attivaTracciamento()">Traccia nuova ZTL (Clicca mappa)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminMap;
+        window.onload = () => {
+            // Conta ZTL
+            let ztls = JSON.parse(localStorage.getItem('custom_ztls') || '[{"radius":350}]');
+            document.getElementById('kpi-ztl').innerText = ztls.length;
+
+            // Legge Ticket Guasti
+            let tickets = JSON.parse(localStorage.getItem('tickets_guasto') || '[]');
+            document.getElementById('kpi-guasti').innerText = tickets.length;
+            let tbody = document.getElementById('admin-ticket-list');
+            if(tickets.length === 0) tbody.innerHTML = '<tr><td colspan="2">Nessun guasto. Rete efficiente al 100%.</td></tr>';
+            tickets.forEach(t => { tbody.innerHTML += `<tr><td style="color:#ef4444; font-weight:bold;">${t.id}</td><td>${t.problema}</td></tr>`; });
+
+            // Grafico
+            new Chart(document.getElementById('trafficChart').getContext('2d'), {
+                type: 'bar', data: { labels: ['FS', 'Poliba', 'Centro'], datasets: [{ label: 'Veicoli', data: [450, 320, 280], backgroundColor: '#2563eb' }] }, options: {maintainAspectRatio: false}
+            });
+
+            // Mappa
+            adminMap = L.map('admin-map').setView([41.1171, 16.8718], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(adminMap);
+            ztls.forEach(z => { if(z.lat) L.circle([z.lat, z.lng], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, radius: z.radius }).addTo(adminMap); });
+        };
+
+        function attivaTracciamento() {
+            adminMap.on('click', function(e) {
+                let ztls = JSON.parse(localStorage.getItem('custom_ztls') || '[]');
+                ztls.push({ lat: e.latlng.lat, lng: e.latlng.lng, radius: 200 });
+                localStorage.setItem('custom_ztls', JSON.stringify(ztls));
+                L.circle([e.latlng.lat, e.latlng.lng], { color: '#ef4444', fillOpacity: 0.4, radius: 200 }).addTo(adminMap).bindPopup("Nuova ZTL").openPopup();
+                document.getElementById('kpi-ztl').innerText = ztls.length;
+                adminMap.off('click');
+            });
+        }
+    </script>
+</body>
+</html>

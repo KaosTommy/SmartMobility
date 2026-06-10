@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zootropolis | App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .smartphone { width: 375px; height: 812px; background-color: #fff; border-radius: 40px; border: 12px solid #1e293b; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .top-bar { position: absolute; top: 0; width: 100%; padding: 25px 20px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(15,23,42,0.8), transparent); color: white; box-sizing: border-box;}
+        .profile-btn { background: #fff; border: none; border-radius: 50%; width: 42px; height: 42px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        .fab { position: absolute; bottom: 110px; right: 20px; width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 999; cursor: pointer; }
+        .scan-container { position: absolute; bottom: 30px; width: 100%; padding: 0 20px; box-sizing: border-box; z-index: 999; }
+        .btn-scan { width: 100%; background: #0f172a; color: white; border: none; padding: 20px; border-radius: 100px; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; justify-content: center; gap: 10px; }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; width: 100%; background: #fff; border-top-left-radius: 30px; border-top-right-radius: 30px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 1000; transition: 0.3s; padding: 25px; box-sizing: border-box; }
+        .bottom-sheet.active { bottom: 0; }
+        .btn-action { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 10px; }
+        .btn-unlock { background: #4f46e5; color: white; }
+        .info-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+        
+        .active-ride-banner { position: absolute; top: 0; left: 0; width: 100%; background: #10b981; color: white; padding: 30px 20px 20px; box-sizing: border-box; z-index: 1001; text-align: center; transform: translateY(-100%); transition: 0.3s; }
+        .active-ride-banner.visible { transform: translateY(0); }
+        .active-ride-banner.paused { background: #f59e0b; }
+        .timer { font-size: 32px; font-weight: 900; font-variant-numeric: tabular-nums; margin-bottom: 5px;}
+        .live-cost { font-size: 18px; font-weight: 600; margin-bottom: 15px; opacity: 0.9; }
+        .btn-ride-action { padding: 12px 20px; border-radius: 30px; border: none; font-weight: 900; cursor: pointer; margin: 0 5px;}
+    </style>
+</head>
+<body>
+
+<div class="smartphone">
+    <div class="top-bar" id="top-bar">
+        <div style="font-weight: 900; font-size: 20px;">Zootropolis</div>
+        <button class="profile-btn" onclick="window.location.href='profilo.html'">👤</button>
+    </div>
+
+    <div class="active-ride-banner" id="ride-banner">
+        <h2 id="ride-status">🟢 In Movimento</h2>
+        <div class="timer" id="ride-timer">00:00</div>
+        <div class="live-cost" id="ride-cost">€ 1.00 <span style="font-size: 12px;">(Tariffa in corso)</span></div>
+        <div style="display: flex; justify-content: center;">
+            <button class="btn-ride-action" style="background: white; color: #f59e0b;" id="btn-pausa" onclick="togglePausa()">⏸️ PAUSA (IF-9)</button>
+            <button class="btn-ride-action" style="background: #ef4444; color: white;" onclick="terminaCorsa(false)">⏹️ TERMINA</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    <div class="fab" onclick="centraMappa()">📍</div>
+    <div class="scan-container" id="scan-container"><button class="btn-scan" onclick="apriScanner()"><span>📷</span> SCAN TO START</button></div>
+
+    <div id="vehicle-sheet" class="bottom-sheet">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 id="sheet-tipo" style="margin: 0;">Veicolo</h2>
+            <div id="sheet-battery" style="background: #d1fae5; color: #059669; padding: 5px 10px; border-radius: 20px; font-weight: 800; font-size: 14px;">🔋 100%</div>
+        </div>
+        <div class="info-row"><span>Targa:</span> <span id="sheet-targa" style="color: #0f172a;">Targa</span></div>
+        <div class="info-row"><span>Tariffa Sblocco:</span> <span style="color: #0f172a;">€ 1.00</span></div>
+        <div class="info-row"><span>Tariffa Corsa:</span> <span id="sheet-costo" style="color: #0f172a;">€ 0.25 / min</span></div>
+        <div class="info-row"><span>Tariffa Pausa (IF-9):</span> <span style="color: #f59e0b;">€ 0.05 / min</span></div>
+        <div class="info-row"><span>Patente B:</span> <span id="sheet-patente" style="color: #ef4444;">Non richiesta</span></div>
+        
+        <button class="btn-action btn-unlock" onclick="sbloccaMezzo()">🔓 Sblocca Ora</button>
+        <button class="btn-action" style="background: #f1f5f9;" onclick="prenotaMezzo()">⏱️ Prenota (15 min)</button>
+        <button class="btn-action" style="background: #fee2e2; color: #ef4444;" onclick="segnalaGuasto()">⚠️ Segnala Problema Veicolo</button>
+        <button class="btn-action" style="background: transparent; color: #64748b;" onclick="chiudiSheet()">Annulla</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const POSIZIONE_UTENTE = [41.1171, 16.8718];
+    let mappa; let timerInterval; let secondiCorsa = 0; let veicoloAttivo = null; let costoAttuale = 1.00;
+    let inPausa = false; const TARIFFA_PAUSA = 0.05;
+
+    window.onload = () => {
+        mappa = L.map('map', { zoomControl: false }).setView(POSIZIONE_UTENTE, 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mappa);
+        L.circleMarker(POSIZIONE_UTENTE, { radius: 8, fillColor: "#3b82f6", color: "#ffffff", weight: 3, fillOpacity: 1 }).addTo(mappa);
+        
+        // ZTL Fissa (Centro Storico)
+        L.circle([41.1285, 16.8700], { color: '#ef4444', fillColor: '#f87171', fillOpacity: 0.2, interactive: false, radius: 350 }).addTo(mappa).bindPopup("<b>ZTL Centro Storico</b>");
+
+        // ZONA ESTERNA - LIMITE OPERATIVO (interactive: false per NON bloccare i click sulla mappa)
+        L.rectangle([[41.0800, 16.8200], [41.1500, 16.9200]], {color: "#000000", weight: 2, fill: false, dashArray: "5, 10", interactive: false}).addTo(mappa);
+        L.marker([41.0850, 16.8718], {icon: L.divIcon({html: '<div style="background:black;color:white;padding:5px;font-weight:bold;width:120px;text-align:center;">CONFINE CITTÀ</div>', className:''})}).addTo(mappa);
+
+        // ZTL Dinamiche (Create dall'Admin)
+        let ztls = JSON.parse(localStorage.getItem('custom_ztls') || '[]');
+        ztls.forEach(z => { L.circle([z.lat, z.lng], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, interactive: false, radius: z.radius }).addTo(mappa); });
+
+        // Flotta Massiva (24 Mezzi)
+        const veicoli = [
+            // Monopattini
+            { id: "MN_001", tipo: "Monopattino", lat: 41.1180, lng: 16.8750, icon: '🛴', bat: 80, costo: 0.20, pat: false },
+            { id: "MN_002", tipo: "Monopattino", lat: 41.1150, lng: 16.8680, icon: '🛴', bat: 10, costo: 0.20, pat: false },
+            { id: "MN_003", tipo: "Monopattino", lat: 41.1120, lng: 16.8790, icon: '🛴', bat: 95, costo: 0.20, pat: false },
+            { id: "MN_004", tipo: "Monopattino", lat: 41.1200, lng: 16.8700, icon: '🛴', bat: 100, costo: 0.20, pat: false },
+            { id: "MN_005", tipo: "Monopattino", lat: 41.1165, lng: 16.8745, icon: '🛴', bat: 50, costo: 0.20, pat: false },
+            { id: "MN_006", tipo: "Monopattino", lat: 41.1190, lng: 16.8780, icon: '🛴', bat: 88, costo: 0.20, pat: false },
+            { id: "MN_007", tipo: "Monopattino", lat: 41.1145, lng: 16.8650, icon: '🛴', bat: 15, costo: 0.20, pat: false },
+            { id: "MN_008", tipo: "Monopattino", lat: 41.1110, lng: 16.8720, icon: '🛴', bat: 60, costo: 0.20, pat: false },
+            // Biciclette
+            { id: "BC_001", tipo: "Bici", lat: 41.1190, lng: 16.8730, icon: '🚲', bat: 100, costo: 0.15, pat: false },
+            { id: "BC_002", tipo: "Bici", lat: 41.1200, lng: 16.8680, icon: '🚲', bat: 85, costo: 0.15, pat: false },
+            { id: "BC_003", tipo: "Bici", lat: 41.1160, lng: 16.8770, icon: '🚲', bat: 70, costo: 0.15, pat: false },
+            { id: "BC_004", tipo: "Bici", lat: 41.1135, lng: 16.8715, icon: '🚲', bat: 90, costo: 0.15, pat: false },
+            { id: "BC_005", tipo: "Bici", lat: 41.1155, lng: 16.8695, icon: '🚲', bat: 45, costo: 0.15, pat: false },
+            { id: "BC_006", tipo: "Bici", lat: 41.1185, lng: 16.8795, icon: '🚲', bat: 100, costo: 0.15, pat: false },
+            // Auto
+            { id: "AU_001", tipo: "Auto", lat: 41.1140, lng: 16.8700, icon: '🚗', bat: 60, costo: 0.45, pat: true },
+            { id: "AU_002", tipo: "Auto", lat: 41.1220, lng: 16.8690, icon: '🚗', bat: 100, costo: 0.45, pat: true },
+            { id: "AU_003", tipo: "Auto", lat: 41.1115, lng: 16.8755, icon: '🚗', bat: 25, costo: 0.45, pat: true },
+            { id: "AU_004", tipo: "Auto", lat: 41.1165, lng: 16.8665, icon: '🚗', bat: 85, costo: 0.45, pat: true },
+            { id: "AU_005", tipo: "Auto", lat: 41.1195, lng: 16.8765, icon: '🚗', bat: 95, costo: 0.45, pat: true },
+            // Moto
+            { id: "MT_001", tipo: "Moto", lat: 41.1160, lng: 16.8720, icon: '🛵', bat: 90, costo: 0.35, pat: true },
+            { id: "MT_002", tipo: "Moto", lat: 41.1130, lng: 16.8780, icon: '🛵', bat: 40, costo: 0.35, pat: true },
+            { id: "MT_003", tipo: "Moto", lat: 41.1175, lng: 16.8675, icon: '🛵', bat: 100, costo: 0.35, pat: true },
+            { id: "MT_004", tipo: "Moto", lat: 41.1185, lng: 16.8715, icon: '🛵', bat: 75, costo: 0.35, pat: true },
+            { id: "MT_005", tipo: "Moto", lat: 41.1205, lng: 16.8735, icon: '🛵', bat: 20, costo: 0.35, pat: true }
+        ];
+
+        veicoli.forEach(v => {
+            let mk = L.marker([v.lat, v.lng], {icon: L.divIcon({ html: `<div style="font-size:28px;">${v.icon}</div>`, className: '' })}).addTo(mappa);
+            mk.on('click', () => apriDettaglio(v));
+        });
+    };
+
+    function apriDettaglio(v) {
+        veicoloAttivo = v;
+        document.getElementById('sheet-tipo').innerText = `${v.icon} ${v.tipo}`;
+        document.getElementById('sheet-targa').innerText = v.id;
+        document.getElementById('sheet-battery').innerText = `🔋 ${v.bat}%`;
+        document.getElementById('sheet-costo').innerText = `€ ${v.costo.toFixed(2)} / min`;
+        
+        // Se non trova sheet-patente nell'HTML, qui JavaScript crasha! (Ora che l'abbiamo rimesso, funziona perfetto)
+        document.getElementById('sheet-patente').innerText = v.pat ? "OBBLIGATORIA" : "Non richiesta";
+        document.getElementById('sheet-patente').style.color = v.pat ? "#ef4444" : "#059669";
+        
+        document.getElementById('scan-container').style.display = 'none';
+        document.getElementById('vehicle-sheet').classList.add('active');
+    }
+
+    function sbloccaMezzo() {
+        if(veicoloAttivo.pat && localStorage.getItem('patente') !== 'true') {
+            return alert("⚠️ Devi validare la tua Patente B nel Profilo.");
+        }
+        chiudiSheet();
+        document.getElementById('scan-container').style.display = 'none';
+        document.getElementById('top-bar').style.display = 'none';
+        document.getElementById('ride-banner').classList.add('visible');
+        
+        secondiCorsa = 0; costoAttuale = 1.00; inPausa = false;
+        document.getElementById('ride-cost').innerText = `€ ${costoAttuale.toFixed(2)} (Tariffa Piena)`;
+
+        timerInterval = setInterval(() => {
+            secondiCorsa++;
+            let m = Math.floor(secondiCorsa / 60).toString().padStart(2, '0');
+            let s = (secondiCorsa % 60).toString().padStart(2, '0');
+            document.getElementById('ride-timer').innerText = `${m}:${s}`;
+            
+            // IF-9 LOGICA PAUSA
+            if(inPausa) { costoAttuale += (TARIFFA_PAUSA / 60); }
+            else { costoAttuale += (veicoloAttivo.costo / 60); }
+            
+            document.getElementById('ride-cost').innerText = `€ ${costoAttuale.toFixed(2)} ${inPausa ? '(Tariffa Pausa)' : '(Tariffa Piena)'}`;
+
+            // BLOCCO REMOTO IF-26
+            if(localStorage.getItem('blocco_' + veicoloAttivo.id) === 'true') terminaCorsa(true);
+        }, 1000);
+    }
+
+    function togglePausa() {
+        inPausa = !inPausa;
+        let banner = document.getElementById('ride-banner');
+        let btnPausa = document.getElementById('btn-pausa');
+        
+        if(inPausa) {
+            banner.classList.add('paused');
+            document.getElementById('ride-status').innerText = '⏸️ Corsa in Pausa';
+            btnPausa.innerText = '▶️ RIPRENDI';
+            alert("Il veicolo è bloccato. La tariffa scende a 0.05€/min.");
+        } else {
+            banner.classList.remove('paused');
+            document.getElementById('ride-status').innerText = '🟢 In Movimento';
+            btnPausa.innerText = '⏸️ PAUSA (IF-9)';
+        }
+    }
+
+    function terminaCorsa(forzato) {
+        clearInterval(timerInterval);
+        document.getElementById('ride-banner').classList.remove('visible');
+        document.getElementById('top-bar').style.display = 'flex';
+        document.getElementById('scan-container').style.display = 'block';
+        
+        if(forzato) {
+            alert(`⛔ Il veicolo ${veicoloAttivo.id} è stato bloccato da remoto. Costo: € ${costoAttuale.toFixed(2)}`);
+        } else {
+            alert(`🏁 Corsa terminata! Durata: ${document.getElementById('ride-timer').innerText}.\nCosto: € ${costoAttuale.toFixed(2)} scalato dal Wallet.`);
+            let saldo = parseFloat(localStorage.getItem('wallet')) || 12.50;
+            localStorage.setItem('wallet', (saldo - costoAttuale).toFixed(2));
+        }
+    }
+    
+    function segnalaGuasto() { 
+        let problema = prompt("Descrivi il guasto:");
+        if(problema) {
+            let tkts = JSON.parse(localStorage.getItem('tickets_guasto') || '[]');
+            tkts.push({ id: veicoloAttivo.id, problema: problema });
+            localStorage.setItem('tickets_guasto', JSON.stringify(tkts));
+            alert("Segnalazione inviata all'operatore!"); chiudiSheet();
+        }
+    }
+
+    function prenotaMezzo() { alert("Veicolo prenotato!"); chiudiSheet(); }
+    function chiudiSheet() { document.getElementById('vehicle-sheet').classList.remove('active'); document.getElementById('scan-container').style.display = 'block'; }
+    function centraMappa() { mappa.setView(POSIZIONE_UTENTE, 14); }
+    function apriScanner() { alert("📸 Fotocamera avviata."); }
+</script>
+</body>
+</html>

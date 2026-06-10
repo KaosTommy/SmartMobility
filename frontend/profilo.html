@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Area Personale</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f8fafc; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        .smartphone { width: 375px; height: 812px; background-color: #fff; border-radius: 40px; border: 12px solid #1e293b; overflow-y: auto; padding: 30px 20px;}
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .back-btn { background: #e2e8f0; border: none; padding: 10px 15px; border-radius: 12px; font-weight: 800; cursor: pointer;}
+        
+        .wallet-card { background: #10b981; color: white; padding: 25px; border-radius: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;}
+        .section-title { font-weight: 900; margin-bottom: 10px; margin-top: 25px; color: #0f172a; font-size: 18px; }
+        .list-item { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; font-size: 14px;}
+        
+        .btn-action { width: 100%; padding: 14px; background: #e2e8f0; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 5px;}
+        .input-text { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-family: 'Inter'; box-sizing: border-box; }
+        
+        .patente-box { padding: 15px; border-radius: 12px; background: #fef2f2; border: 2px dashed #ef4444; text-align: center; font-weight: 700; color: #ef4444; }
+        .patente-box.valid { background: #ecfdf5; border-color: #10b981; color: #10b981; }
+
+        .chat-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; height: 200px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { padding: 10px; border-radius: 10px; font-size: 13px; max-width: 80%; font-weight: 600; }
+        .msg-utente { background: #4f46e5; color: white; align-self: flex-end; border-bottom-right-radius: 2px;}
+        .msg-operatore { background: #e2e8f0; color: #0f172a; align-self: flex-start; border-bottom-left-radius: 2px;}
+    </style>
+</head>
+<body>
+<div class="smartphone">
+    <div class="header">
+        <button class="back-btn" onclick="window.location.href='app.html'">← Mappa</button>
+        <h2 style="margin: 0;">Profilo</h2>
+    </div>
+
+    <div class="wallet-card">
+        <div>
+            <div style="font-size: 14px; opacity: 0.9;">Saldo Disponibile</div>
+            <div style="font-size: 32px; font-weight: 900;">€ <span id="saldo-txt">12.50</span></div>
+        </div>
+        <button style="background: white; color: #10b981; border: none; padding: 10px; border-radius: 10px; font-weight: 800;" onclick="ricaricaSaldo()">Ricarica</button>
+    </div>
+
+    <h3 class="section-title">Validazione Patente B</h3>
+    <div id="patente-status" class="patente-box">❌ PATENTE NON INSERITA</div>
+    <button class="btn-action" id="btn-patente" onclick="validaPatente()">Carica Foto Patente</button>
+
+    <h3 class="section-title">Metodi di Pagamento</h3>
+    <div id="carte-list"></div>
+    <button class="btn-action" onclick="aggiungiCarta()">+ Aggiungi Carta di Credito</button>
+
+    <h3 class="section-title">Codici Promozionali</h3>
+    <div style="display:flex; gap:10px;">
+        <input type="text" id="promo-input" class="input-text" placeholder="Es. PROMO10" style="margin:0;">
+        <button class="btn-action" style="background: #10b981; color: white; margin:0;" onclick="riscattaPromo()">Riscatta</button>
+    </div>
+
+    <h3 class="section-title">Storico Corse (IF-13)</h3>
+    <div id="storico-list">
+        <div class="list-item"><strong>Oggi, 14:30</strong><br>Monopattino MN_001 (In sviluppo) - € 2.50</div>
+        <div class="list-item"><strong>Ieri, 09:15</strong><br>Bicicletta BC_002 (Conclusa) - € 1.20</div>
+    </div>
+
+    <h3 class="section-title">Supporto Live (IF-14)</h3>
+    <div class="chat-box" id="chat-history"></div>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="chat-input" class="input-text" placeholder="Scrivi un messaggio...">
+        <button class="btn-action" style="background: #4f46e5; color: white; width: auto;" onclick="inviaMessaggio()">Invia</button>
+    </div>
+
+    <h3 class="section-title">Privacy (GDPR)</h3>
+    <button class="btn-action" style="background: #fef2f2; color: #ef4444;" onclick="eseguiLogout()">Esci dall'Account</button>
+    <button class="btn-action" style="background: #ef4444; color: white; margin-bottom: 30px;" onclick="eliminaAccount()">Elimina Account (IF-16)</button>
+</div>
+
+<script>
+    window.onload = () => {
+        let saldo = parseFloat(localStorage.getItem('wallet'));
+        if(isNaN(saldo)) saldo = 12.50;
+        document.getElementById('saldo-txt').innerText = saldo.toFixed(2);
+        
+        let carte = JSON.parse(localStorage.getItem('carte') || '["MasterCard terminante in 1234"]');
+        carte.forEach(c => document.getElementById('carte-list').innerHTML += `<div class="list-item">💳 ${c}</div>`);
+
+        if(localStorage.getItem('patente') === 'true') {
+            document.getElementById('patente-status').className = 'patente-box valid';
+            document.getElementById('patente-status').innerText = '✅ PATENTE VERIFICATA';
+            document.getElementById('btn-patente').style.display = 'none';
+        }
+
+        caricaChat();
+        setInterval(caricaChat, 1000); // Riceve messaggi dall'operatore
+    };
+
+    function ricaricaSaldo() {
+        let importo = parseFloat(prompt("Inserisci l'importo da ricaricare (es. 5):").replace(',','.'));
+        if(isNaN(importo) || importo <= 0) return alert("Importo non valido.");
+        let saldo = parseFloat(localStorage.getItem('wallet')) || 12.50;
+        localStorage.setItem('wallet', (saldo + importo).toFixed(2));
+        document.getElementById('saldo-txt').innerText = (saldo + importo).toFixed(2);
+        alert(`Ricarica completata!`);
+    }
+
+    function validaPatente() { alert("Patente acquisita."); localStorage.setItem('patente', 'true'); location.reload(); }
+    function aggiungiCarta() {
+        let n = prompt("Inserisci le 16 cifre:");
+        if(n && n.length >= 12) {
+            let carte = JSON.parse(localStorage.getItem('carte') || '["MasterCard terminante in 1234"]');
+            carte.push(`Visa terminante in ${n.substring(n.length-4)}`);
+            localStorage.setItem('carte', JSON.stringify(carte));
+            location.reload();
+        }
+    }
+    function riscattaPromo() {
+        let val = document.getElementById('promo-input').value;
+        if(val === "") return;
+        alert(`Codice ${val} riscattato! +5€ nel Wallet.`);
+        let saldo = parseFloat(localStorage.getItem('wallet')) || 12.50;
+        localStorage.setItem('wallet', (saldo + 5).toFixed(2));
+        location.reload();
+    }
+
+    function caricaChat() {
+        let msgs = JSON.parse(localStorage.getItem('chat_live') || '[{"role":"operatore","text":"Ciao! Come posso aiutarti?"}]');
+        let box = document.getElementById('chat-history');
+        box.innerHTML = '';
+        msgs.forEach(m => { box.innerHTML += `<div class="chat-msg ${m.role === 'utente' ? 'msg-utente' : 'msg-operatore'}">${m.text}</div>`; });
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function inviaMessaggio() {
+        let input = document.getElementById('chat-input');
+        if(input.value.trim() === "") return;
+        let msgs = JSON.parse(localStorage.getItem('chat_live') || '[{"role":"operatore","text":"Ciao! Come posso aiutarti?"}]');
+        msgs.push({role: 'utente', text: input.value});
+        localStorage.setItem('chat_live', JSON.stringify(msgs));
+        input.value = ""; caricaChat();
+    }
+
+    function eseguiLogout() { window.location.href = 'auth.html'; }
+    function eliminaAccount() {
+        if(confirm("Sei sicuro di voler eliminare il tuo account? I tuoi dati verranno anonimizzati secondo il GDPR (IF-16).")) {
+            localStorage.clear();
+            alert("Account eliminato con successo.");
+            window.location.href = 'auth.html';
+        }
+    }
+</script>
+</body>
+</html>

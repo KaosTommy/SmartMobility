@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zootropolis | Accesso</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        :root { --primary: #4f46e5; --bg-color: #f8fafc; --surface: #ffffff; --text-dark: #0f172a; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #e0e7ff, #c7d2fe); display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { background: var(--surface); width: 100%; max-width: 400px; padding: 40px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
+        .title { font-size: 28px; font-weight: 900; color: var(--text-dark); margin: 10px 0 5px 0; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #475569;}
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Inter'; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .toggle-link { color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 15px; display: inline-block; }
+        .hidden { display: none; }
+        .test-credentials { margin-top: 30px; padding: 15px; background: #f1f5f9; border-radius: 12px; font-size: 12px; color: #64748b; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div style="font-size: 40px;">🏙️</div>
+    <h1 class="title">Zootropolis</h1>
+    <p style="color: #64748b; margin-bottom: 25px; font-size: 14px;" id="form-subtitle">Accedi al tuo account</p>
+
+    <div id="login-form">
+        <div class="input-group"><label>Email</label><input type="email" id="log-email" value="t.gelao2@studenti.uniba.it"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="log-password" value="password123"></div>
+        <button class="btn-main" onclick="eseguiLogin()">Accedi</button>
+        <span class="toggle-link" onclick="toggleForm()">Non hai un account? Registrati (IF-1)</span>
+    </div>
+
+    <div id="register-form" class="hidden">
+        <div class="input-group"><label>Nome</label><input type="text" id="reg-nome" placeholder="Mario"></div>
+        <div class="input-group"><label>Cognome</label><input type="text" id="reg-cognome" placeholder="Rossi"></div>
+        <div class="input-group"><label>Email</label><input type="email" id="reg-email" placeholder="mario@email.it"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="reg-password" placeholder="••••••••"></div>
+        <button class="btn-main" onclick="simulaRegistrazione()">Crea Account</button>
+        <span class="toggle-link" onclick="toggleForm()">Hai già un account? Accedi</span>
+    </div>
+
+    <div class="test-credentials">
+        <strong>Credenziali (Esame):</strong><br>
+        👤 Utente: <i>t.gelao2@studenti.uniba.it</i><br>
+        🔧 Operatore: <i>m.morisco12@studenti.uniba.it</i><br>
+        🏛️ Admin: <i>a.antenori1@studenti.uniba.it</i><br>
+    </div>
+</div>
+
+<script>
+    function toggleForm() {
+        const logForm = document.getElementById('login-form');
+        const regForm = document.getElementById('register-form');
+        const sub = document.getElementById('form-subtitle');
+        logForm.classList.toggle('hidden');
+        regForm.classList.toggle('hidden');
+        sub.innerText = logForm.classList.contains('hidden') ? "Crea un nuovo account" : "Accedi al tuo account";
+    }
+
+    function eseguiLogin() {
+        const email = document.getElementById('log-email').value;
+        // Inizializza portafoglio e patente se non esistono
+        if(!localStorage.getItem('wallet')) localStorage.setItem('wallet', '12.50');
+        if(!localStorage.getItem('patente')) localStorage.setItem('patente', 'false');
+
+        if(email.includes('m.morisco')) {
+            localStorage.setItem('session_ruolo', 'OPERATORE'); window.location.href = 'operatore.html';
+        } else if(email.includes('a.antenori')) {
+            localStorage.setItem('session_ruolo', 'ADMIN'); window.location.href = 'admin.html';
+        } else {
+            localStorage.setItem('session_ruolo', 'UTENTE'); localStorage.setItem('session_nome', 'Tommaso'); window.location.href = 'app.html';
+        }
+    }
+
+    function simulaRegistrazione() { alert("✅ Registrazione completata!"); toggleForm(); }
+</script>
+</body>
+</html>

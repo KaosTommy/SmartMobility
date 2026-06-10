@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zootropolis | Fleet Management</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background-color: #0f172a; color: white; display: flex; flex-direction: column; padding: 20px; }
+        .nav-item { padding: 15px; margin-bottom: 10px; border-radius: 12px; cursor: pointer; font-weight: 600; color: #94a3b8; }
+        .nav-item.active { background-color: rgba(255,255,255,0.1); color: white; }
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        table { width: 100%; border-collapse: collapse; } th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        .action-btn { background: #4f46e5; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .view-section { display: none; } .view-section.active { display: block; }
+        .chat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;}
+        .chat-msg { padding: 10px; border-radius: 10px; font-size: 13px; max-width: 80%; font-weight: 600; }
+        .msg-utente { background: #e2e8f0; color: #0f172a; align-self: flex-start; }
+        .msg-operatore { background: #10b981; color: white; align-self: flex-end; }
+        .input-form { width: 100%; padding:10px; border-radius:8px; border: 1px solid #ccc; box-sizing:border-box; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div style="font-size: 24px; font-weight: 900; margin-bottom: 40px;">🔧 Operatore</div>
+        <div class="nav-item active" onclick="cambiaTab('dashboard', this)">📊 Centro Operazioni</div>
+        <div class="nav-item" onclick="cambiaTab('gestione', this)">👥 Utenti & Rimborsi</div>
+        <div class="nav-item" onclick="cambiaTab('promo-sec', this)">🎁 Codici Promozionali</div>
+        <button style="margin-top: auto; padding: 15px; background: #ef4444; color: white; border-radius: 10px; border:none; cursor:pointer;" onclick="window.location.href='auth.html'">Esci</button>
+    </div>
+
+    <div class="main-content">
+        <div id="dashboard" class="view-section active">
+            <h1 style="margin-top:0;">Ponte di Comando</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="col-left">
+                    <div class="card">
+                        <h3>Chat Diretta Utenti (IF-14)</h3>
+                        <div class="chat-box" id="operator-chat-history"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="chat-input" class="input-form" placeholder="Rispondi all'utente..." style="margin:0;">
+                            <button class="action-btn" style="background: #10b981;" onclick="rispondiChat()">Invia</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Segnalazioni Guasti (IF-24)</h3>
+                        <table>
+                            <thead><tr><th>Mezzo</th><th>Problema</th><th>Azione</th></tr></thead>
+                            <tbody id="ticket-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-right">
+                    <div class="card">
+                        <h3 style="color:#ef4444;">Modifica Stato Mezzo (IF-26)</h3>
+                        <input type="text" id="targa" class="input-form" placeholder="Targa (es. MN_004)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="action-btn" style="background:#ef4444; flex:1;" onclick="forzaBlocco()">Blocca/In Manutenzione</button>
+                            <button class="action-btn" style="background:#10b981; flex:1;" onclick="sbloccaManutenzione()">Rendi Disponibile</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display:flex; justify-content: space-between; align-items:center;">
+                            <h3>Stato Batterie (IF-27)</h3>
+                            <button class="action-btn" style="background:#f59e0b;" onclick="filtraBatterie()">Filtra < 10%</button>
+                        </div>
+                        <ul id="battery-list" style="list-style:none; padding:0; margin:0; line-height:2;">
+                            <li>MN_002: <span style="color:#ef4444; font-weight:bold;">8% 🔋</span></li>
+                            <li>BC_003: <span style="color:#f59e0b; font-weight:bold;">30% 🔋</span></li>
+                            <li>MT_002: <span style="color:#f59e0b; font-weight:bold;">15% 🔋</span></li>
+                            <li>MN_004: <span style="color:#10b981; font-weight:bold;">100% 🔋</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gestione" class="view-section">
+            <h1>Amministrazione Utenti</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="card">
+                    <h3>Sospendi/Banna Utente (IF-25)</h3>
+                    <input type="email" id="ban-email" class="input-form" placeholder="Email Utente">
+                    <button class="action-btn" style="background:#ef4444;" onclick="bannaUtente()">Sospendi Account</button>
+                </div>
+                <div class="card">
+                    <h3>Emetti Rimborso su Metodo di Pagamento</h3>
+                    <input type="number" id="rimborso-val" class="input-form" placeholder="Importo in €">
+                    <button class="action-btn" style="background:#10b981;" onclick="emettiRimborso()">Accredita su Wallet Utente</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="promo-sec" class="view-section">
+            <h1>Gestione Marketing</h1>
+            <div class="card">
+                <input type="text" id="new-promo" class="input-form" placeholder="Nome Codice (es. SUMMER20)">
+                <input type="number" id="val-promo" class="input-form" placeholder="Valore in €">
+                <button class="action-btn" onclick="generaPromo()">Salva e Attiva</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => { caricaChat(); caricaTicket(); setInterval(caricaChat, 1000); };
+        function cambiaTab(idTab, btn) { document.querySelectorAll('.view-section, .nav-item').forEach(el => el.classList.remove('active')); document.getElementById(idTab).classList.add('active'); btn.classList.add('active'); }
+
+        // CHAT
+        function caricaChat() {
+            let msgs = JSON.parse(localStorage.getItem('chat_live') || '[]');
+            let box = document.getElementById('operator-chat-history');
+            box.innerHTML = '';
+            msgs.forEach(m => { box.innerHTML += `<div class="chat-msg ${m.role === 'utente' ? 'msg-utente' : 'msg-operatore'}">${m.role === 'utente' ? '👤 Utente: ' : '🎧 Tu: '}${m.text}</div>`; });
+            box.scrollTop = box.scrollHeight;
+        }
+        function rispondiChat() {
+            let input = document.getElementById('chat-input');
+            if(input.value.trim() === "") return;
+            let msgs = JSON.parse(localStorage.getItem('chat_live') || '[]');
+            msgs.push({role: 'operatore', text: input.value});
+            localStorage.setItem('chat_live', JSON.stringify(msgs));
+            input.value = ""; caricaChat();
+        }
+
+        // TICKET
+        function caricaTicket() {
+            let tickets = JSON.parse(localStorage.getItem('tickets_guasto') || '[]');
+            let tBody = document.getElementById('ticket-list');
+            if(tickets.length === 0) tBody.innerHTML = '<tr><td colspan="3">Nessun guasto.</td></tr>';
+            tickets.forEach(t => { tBody.innerHTML += `<tr><td style="font-weight:bold;">${t.id}</td><td>${t.problema}</td><td><button class="action-btn" onclick="this.innerText='Risolto'; this.style.background='#10b981'">Risolvi</button></td></tr>`; });
+        }
+
+        // AZIONI MEZZI (IF-26 e IF-27)
+        function forzaBlocco() {
+            let targa = document.getElementById('targa').value;
+            if(!targa) return;
+            localStorage.setItem('blocco_' + targa, 'true'); // Spegne la corsa nell'app utente
+            alert(`⛔ Mezzo ${targa} bloccato in emergenza e impostato su 'In Manutenzione'.`);
+        }
+        function sbloccaManutenzione() {
+            let targa = document.getElementById('targa').value;
+            if(!targa) return;
+            localStorage.removeItem('blocco_' + targa);
+            alert(`✅ Mezzo ${targa} ripristinato. Ora è 'Disponibile'.`);
+        }
+        function filtraBatterie() {
+            document.getElementById('battery-list').innerHTML = `<li>MN_002: <span style="color:#ef4444; font-weight:bold;">8% 🔋 (Urgenza Ricarica)</span></li>`;
+        }
+
+        // AZIONI UTENTI
+        function bannaUtente() { alert(`Account ${document.getElementById('ban-email').value} SOSPESO per violazione Termini d'Uso (IF-25).`); document.getElementById('ban-email').value = ''; }
+        function emettiRimborso() {
+            let rimb = parseFloat(document.getElementById('rimborso-val').value);
+            if(isNaN(rimb)) return;
+            let saldo = parseFloat(localStorage.getItem('wallet')) || 12.50;
+            localStorage.setItem('wallet', (saldo + rimb).toFixed(2));
+            alert(`Rimborso di ${rimb}€ accreditato sul Wallet dell'utente.`);
+            document.getElementById('rimborso-val').value = '';
+        }
+        function generaPromo() { alert(`Promo generata!`); }
+    </script>
+</body>
+</html>
