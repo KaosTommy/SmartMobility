@@ -52,4 +52,26 @@ public abstract class Mezzo {
         this.coordinateAttuali = coord;
         this.livelloBatteria = batt;
     }
+    // ---> INIZIO AGGIUNTE PER RISOLVERE GLI ERRORI IN GESTORE NOLEGGIO <---
+    
+    // 1. Aggiungiamo la tariffa di base (mettiamo un default di 0.25 cent/minuto per sicurezza)
+    @Column(name = "tariffa_al_minuto")
+    private double tariffaAlMinuto = 0.25;
+
+    public double getTariffaAlMinuto() {
+        return tariffaAlMinuto;
+    }
+
+    public void setTariffaAlMinuto(double tariffaAlMinuto) {
+        this.tariffaAlMinuto = tariffaAlMinuto;
+    }
+
+    // 2. Il tocco di classe OOP: invece di salvare una stringa, usiamo la Reflection
+    // per capire automaticamente se l'oggetto è un Motociclo, Automobile o Monopattino
+    // in base alla classe figlia che lo ha istanziato.
+    public String getTipo() {
+        return this.getClass().getSimpleName();
+    }
+    
+    // ---> FINE AGGIUNTE <---
 }

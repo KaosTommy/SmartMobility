@@ -58,6 +58,15 @@ public class GestoreNoleggio {
             throw new IllegalStateException("Il mezzo non è disponibile.");
         }
 
+        // ---> INIZIO FIX: Guardia di Sicurezza per la Patente <---
+        // Sostituisci "getTipo()" e "isPatenteBValida()" con i nomi esatti dei metodi che avete in Utente e Mezzo.
+        // Se avete usato Stringhe per il tipo (es. "Motociclo"), usa .equals("Motociclo")
+        if (("Motociclo".equalsIgnoreCase(mezzo.getTipo()) || "Automobile".equalsIgnoreCase(mezzo.getTipo())) 
+             && !utente.isPatenteBValida()) {
+            throw new IllegalStateException("Azione negata: Patente non valida o assente per questo veicolo.");
+        }
+        // ---> FINE FIX <---
+
         if (!sensoriIoT.inviaComandoSblocco(mezzo.getIdSensore())) throw new RuntimeException("Errore IoT");
 
         mezzo.setStatoOperativo("In Uso");
@@ -88,7 +97,7 @@ public class GestoreNoleggio {
         corsaRepository.save(corsa);
     }
 
-    @Transactional
+   @Transactional
     public Ricevuta terminaCorsa(String idCorsa) {
         Corsa corsa = corsaRepository.findById(idCorsa).orElseThrow(() -> new RuntimeException("Corsa non trovata"));
         Mezzo mezzo = corsa.getMezzo();
@@ -101,13 +110,29 @@ public class GestoreNoleggio {
         if (!sensoriIoT.inviaComandoBlocco(mezzo.getIdSensore())) throw new RuntimeException("Errore blocco fisico.");
 
         corsa.setStatoCorsa("Conclusa");
-        corsa.setTimeFine(new Timestamp(System.currentTimeMillis()));
+        // Impostiamo il tempo di fine
+        Timestamp tempoFine = new Timestamp(System.currentTimeMillis());
+        corsa.setTimeFine(tempoFine);
         corsaRepository.save(corsa);
 
         mezzo.setStatoOperativo("Disponibile");
         mezzoRepository.save(mezzo);
 
-        return new Ricevuta("REC_" + System.currentTimeMillis(), 2.50f);
+        // ---> INIZIO FIX: Calcolo Dinamico Tariffa <---
+        // 1. Calcola i millisecondi tra inizio e fine corsa (assicurati che getTimeInizio() sia il nome corretto)
+        long millisecondiTrascorsi = tempoFine.getTime() - corsa.getTimeInizio().getTime();
+        long minutiTrascorsi = millisecondiTrascorsi / (60 * 1000); // Converte in minuti
+        
+        if (minutiTrascorsi == 0) {
+            minutiTrascorsi = 1; // Fa pagare almeno 1 minuto minimo
+        }
+
+        // 2. Calcola l'importo (Assicurati che getTariffaAlMinuto() esista. Se non c'è, usa temporaneamente 0.20f come valore dinamico)
+        float importoCalcolato = (float) (minutiTrascorsi * mezzo.getTariffaAlMinuto());
+
+        // 3. Genera la ricevuta corretta
+        return new Ricevuta("REC_" + System.currentTimeMillis(), importoCalcolato);
+        // ---> FINE FIX <---
     }
     // IF-13
     public List<Corsa> estraiStoricoCorse(String idUtente) {
