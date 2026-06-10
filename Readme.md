@@ -61,3 +61,11 @@ Dashboard Operatore: m.morisco12@studenti.uniba.it
 Cruscotto Comune (Admin): a.antenori1@studenti.uniba.it
 
 Password universale: password123
+SMART MOBILITY SYSTEM - BACKEND CONFIGURATION
+- Requisiti di sistema: Java 17 o superiore, Maven (incluso tramite mvnw).
+- Database: H2 Relazionale In-Memory (auto-configurato, non richiede installazione locale).
+- Istruzioni per l'installazione e l'avvio:
+  1. Aprire il terminale nella root del progetto (cartella backend).
+  2. Eseguire il comando: .\mvnw spring-boot:run
+  3. Il server si avvierà sulla porta standard http://localhost:8080
+- Popolamento iniziale: All'avvio, la classe DataSeeder provvederà a inizializzare automaticamente il database con utenti di test (Ruoli: UTENTE, OPERATORE, ADMIN), veicoli e stazioni di ricarica.
