@@ -1,4 +1,4 @@
-# 🏙️ Zootropolis - Smart Mobility System
+# 🏙️ SmartMobility - Smart Mobility System
 
 Progetto realizzato per il corso di **Ingegneria del Software (a.a. 2025-2026)** presso l'Università degli Studi di Bari. 
 Il sistema implementa una piattaforma completa per la gestione in sharing di micro-mobilità urbana (Monopattini, Biciclette, Auto e Motocicli Elettrici).
