@@ -51,4 +51,13 @@ public Utente getUtente() { return utente; }
     }
     public java.sql.Timestamp getTimeInizio() { return timeInizio; }
 public java.sql.Timestamp getTimeFine() { return timeFine; }
+private int durataPausa = 0;
+
+    public int getDurataPausa() { return durataPausa; }
+    public void setDurataPausa(int durataPausa) { this.durataPausa = durataPausa; }
+
+    // IF-9: Metodo richiesto dal Class Diagram
+    public void aggiungiPausa(int minuti) {
+        this.durataPausa += minuti;
+    }
 }

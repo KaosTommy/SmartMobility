@@ -18,9 +18,6 @@ public abstract class Mezzo {
     private Timestamp scadenzaPrenotazione;
     private int livelloBatteria;
 
-    // Aggiunte le coordinate per la mappa!
-    private double latitudine;
-    private double longitudine;
 
     public Mezzo() {}
 
@@ -42,9 +39,17 @@ public abstract class Mezzo {
     public int getLivelloBatteria() { return livelloBatteria; }
     public void setLivelloBatteria(int livelloBatteria) { this.livelloBatteria = livelloBatteria; }
     
-    // Metodi per far felice il DataSeeder
-    public double getLatitudine() { return latitudine; }
-    public void setLatitudine(double latitudine) { this.latitudine = latitudine; }
-    public double getLongitudine() { return longitudine; }
-    public void setLongitudine(double longitudine) { this.longitudine = longitudine; }
+   
+// IF-8: Aggiornamento telemetrico da UML
+  @Embedded
+    private Coordinate coordinateAttuali;
+
+    public Coordinate getCoordinateAttuali() { return coordinateAttuali; }
+    public void setCoordinateAttuali(Coordinate coordinateAttuali) { this.coordinateAttuali = coordinateAttuali; }
+    
+    // Aggiorna anche il metodo della telemetria per usare l'oggetto:
+    public void aggiornaTelemetria(Coordinate coord, int batt) {
+        this.coordinateAttuali = coord;
+        this.livelloBatteria = batt;
+    }
 }

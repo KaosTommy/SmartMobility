@@ -3,14 +3,18 @@ package com.smartmobility.backend.repository;
 import com.smartmobility.backend.model.Utente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
 import java.util.Optional;
 
 @Repository
-public interface UtenteRepository extends JpaRepository<Utente, String> {
+public interface UtenteDAO extends JpaRepository<Utente, String> {
     
-    // Metodo utilizzato da GestoreAccount per la Registrazione
     Optional<Utente> findByEmail(String email);
 
-    // Metodo utilizzato da AuthRestController per il Login
-    Optional<Utente> findByEmailAndPasswordHash(String email, String passwordHash);
+    // TRUCCO PER RISPETTARE IL DIAGRAMMA DI SEQUENZA AL 100%
+    // Espone il metodo "insert" che fa da proxy al metodo "save" di JPA
+    default boolean insert(Utente utente) {
+        this.save(utente);
+        return true;
+    }
 }

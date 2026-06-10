@@ -1,5 +1,6 @@
 package com.smartmobility.backend.business;
 
+import com.smartmobility.backend.integration.IPaymentAPI;
 import com.smartmobility.backend.model.Corsa;
 import com.smartmobility.backend.model.MetodoPagamento;
 import com.smartmobility.backend.model.Pagamento;
@@ -7,7 +8,7 @@ import com.smartmobility.backend.model.Utente;
 import com.smartmobility.backend.repository.CorsaRepository;
 import com.smartmobility.backend.repository.MetodoPagamentoRepository;
 import com.smartmobility.backend.repository.PagamentoRepository;
-import com.smartmobility.backend.repository.UtenteRepository;
+import com.smartmobility.backend.repository.UtenteDAO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,27 +17,30 @@ import java.util.List;
 @Service
 public class GestorePagamenti {
 
+    private final IPaymentAPI paymentAPI;
     private final MetodoPagamentoRepository metodoRepository;
-    private final UtenteRepository utenteRepository;
+    private final UtenteDAO UtenteDAO;
     private final CorsaRepository corsaRepository;
     // GAP 5: Aggiunto il repository fisico dei pagamenti
     private final PagamentoRepository pagamentoRepository; 
 
    
-    public GestorePagamenti(MetodoPagamentoRepository metodoRepository, UtenteRepository utenteRepository, 
-                            CorsaRepository corsaRepository, PagamentoRepository pagamentoRepository) {
+    public GestorePagamenti(MetodoPagamentoRepository metodoRepository, UtenteDAO UtenteDAO, 
+                            CorsaRepository corsaRepository, PagamentoRepository pagamentoRepository, IPaymentAPI paymentAPI) {
         this.metodoRepository = metodoRepository;
-        this.utenteRepository = utenteRepository;
+        this.UtenteDAO = UtenteDAO;
         this.corsaRepository = corsaRepository;
         this.pagamentoRepository = pagamentoRepository;
+        this.paymentAPI = paymentAPI; 
     }
-
-    // SOSTITUISCI IL VECCHIO "aggiungiCarta" CON QUESTO:
+    
     @Transactional
     public boolean salvaMetodoPagamento(String idUtente, String datiCarta, String intestatario, String scadenza) {
-        Utente utente = utenteRepository.findById(idUtente)
+        Utente utente = UtenteDAO.findById(idUtente)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
-        
+        if (!paymentAPI.validaCarta(datiCarta)) {
+    throw new RuntimeException("Carta rifiutata dal Gateway Bancario Esterno");
+}
         // Oscuramento carta simulato
         String cartaOscurata = "**** **** **** " + datiCarta.substring(Math.max(0, datiCarta.length() - 4));
         MetodoPagamento nuovoMetodo = new MetodoPagamento("CARD_" + System.currentTimeMillis(), cartaOscurata, intestatario, scadenza, utente);
@@ -47,7 +51,7 @@ public class GestorePagamenti {
     }
 
     public List<MetodoPagamento> getCarteUtente(String idUtente) {
-        Utente utente = utenteRepository.findById(idUtente).orElseThrow(() -> new RuntimeException("Utente non trovato"));
+        Utente utente = UtenteDAO.findById(idUtente).orElseThrow(() -> new RuntimeException("Utente non trovato"));
         return metodoRepository.findByUtente(utente);
     }
 
@@ -62,7 +66,7 @@ public class GestorePagamenti {
         // 1. Proviamo col Wallet
         if (utente.getSaldoWallet() >= importo) {
             utente.aggiungiFondi(-importo);
-            utenteRepository.save(utente);
+            UtenteDAO.save(utente);
             nuovoPagamento.setStato("SALDATO");
             pagamentoRepository.save(nuovoPagamento);
             return true;
@@ -82,7 +86,7 @@ public class GestorePagamenti {
         pagamentoRepository.save(nuovoPagamento);
 
         utente.setStatoAccount("SOSPESO");
-        utenteRepository.save(utente);
+        UtenteDAO.save(utente);
 
         throw new IllegalStateException("Pagamento fallito per mancanza di fondi. Il tuo account è stato SOSPESO.");
     }

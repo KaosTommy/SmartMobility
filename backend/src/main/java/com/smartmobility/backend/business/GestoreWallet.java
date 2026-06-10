@@ -1,19 +1,18 @@
 package com.smartmobility.backend.business;
 
 import com.smartmobility.backend.model.Utente;
-import com.smartmobility.backend.repository.UtenteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.smartmobility.backend.repository.UtenteDAO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class GestoreWallet {
 
-    private final UtenteRepository utenteRepository;
+    private final UtenteDAO UtenteDAO;
 
-    @Autowired
-    public GestoreWallet(UtenteRepository utenteRepository) {
-        this.utenteRepository = utenteRepository;
+
+    public GestoreWallet(UtenteDAO UtenteDAO) {
+        this.UtenteDAO = UtenteDAO;
     }
 
     @Transactional
@@ -22,19 +21,19 @@ public class GestoreWallet {
             throw new IllegalArgumentException("L'importo della ricarica deve essere maggiore di zero.");
         }
 
-        Utente utente = utenteRepository.findById(idUtente)
+        Utente utente = UtenteDAO.findById(idUtente)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
         // Qui in produzione ci sarebbe la chiamata al Gateway Bancario (PayPal/Stripe) per prelevare i soldi veri
         
         utente.aggiungiFondi(importo);
-        utenteRepository.save(utente);
+        UtenteDAO.save(utente);
         
         return utente.getSaldoWallet();
     }
 
     public float getSaldo(String idUtente) {
-        Utente utente = utenteRepository.findById(idUtente)
+        Utente utente = UtenteDAO.findById(idUtente)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
         return utente.getSaldoWallet();
     }

@@ -1,35 +1,37 @@
 package com.smartmobility.backend.api;
 
+import com.smartmobility.backend.business.GestoreAccount;
 import com.smartmobility.backend.model.Utente;
-import com.smartmobility.backend.repository.UtenteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
 public class AuthRestController {
 
-    @Autowired
-    private UtenteRepository utenteRepository;
+    private final GestoreAccount gestoreAccount;
+
+    // Costruttore per Dependency Injection automatica
+    public AuthRestController(GestoreAccount gestoreAccount) {
+        this.gestoreAccount = gestoreAccount;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
-        Optional<Utente> utente = utenteRepository.findByEmailAndPasswordHash(email, password);
-        
-        if (utente.isPresent()) {
-            Utente u = utente.get();
-            // Controllo sicurezza (IF-12 e IF-16)
-            if ("SOSPESO".equals(u.getStatoAccount()) || "ELIMINATO".equals(u.getStatoAccount())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accesso negato: Account Sospeso o Eliminato.");
-            }
-            return ResponseEntity.ok(u);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenziali non valide.");
+        try {
+            Utente utente = gestoreAccount.autenticaUtente(email, password);
+            return ResponseEntity.ok(utente);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
+    }
+
+    // IF-3, IF-18, IF-23: Endpoint di Logout allineato all'UML
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam String idSessione) {
+        gestoreAccount.disconnettiUtente(idSessione);
+        return ResponseEntity.ok("Logout effettuato con successo. Sessione rimossa.");
     }
 }

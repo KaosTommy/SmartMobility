@@ -3,27 +3,26 @@ package com.smartmobility.backend.business;
 import com.smartmobility.backend.api.dto.DashboardStats;
 import com.smartmobility.backend.model.Utente;
 import com.smartmobility.backend.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class GestoreAdmin {
 
-    private final UtenteRepository utenteRepository;
+    private final UtenteDAO UtenteDAO;
     private final MezzoRepository mezzoRepository;
     private final CorsaRepository corsaRepository;
 
-    @Autowired
-    public GestoreAdmin(UtenteRepository utenteRepository, MezzoRepository mezzoRepository, CorsaRepository corsaRepository) {
-        this.utenteRepository = utenteRepository;
+    
+    public GestoreAdmin(UtenteDAO UtenteDAO, MezzoRepository mezzoRepository, CorsaRepository corsaRepository) {
+        this.UtenteDAO = UtenteDAO;
         this.mezzoRepository = mezzoRepository;
         this.corsaRepository = corsaRepository;
     }
 
     // Estrazione KPI aziendali per la BI
     public DashboardStats calcolaStatistiche() {
-        long totaleUtenti = utenteRepository.count();
+        long totaleUtenti = UtenteDAO.count();
         long corseTotali = corsaRepository.count();
         
         long disponibili = mezzoRepository.findAll().stream().filter(m -> "Disponibile".equals(m.getStatoOperativo())).count();
@@ -39,10 +38,10 @@ public class GestoreAdmin {
     // Gestione Sicurezza: Sospensione Account
     @Transactional
     public void cambiaStatoUtente(String idUtente, String nuovoStato) {
-        Utente utente = utenteRepository.findById(idUtente)
+        Utente utente = UtenteDAO.findById(idUtente)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
         
         utente.setStatoAccount(nuovoStato);
-        utenteRepository.save(utente);
+        UtenteDAO.save(utente);
     }
 }

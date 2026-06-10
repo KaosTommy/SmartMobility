@@ -2,7 +2,6 @@ package com.smartmobility.backend.business;
 
 import com.smartmobility.backend.model.*;
 import com.smartmobility.backend.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,13 +12,13 @@ public class GestoreAssistenza {
 
     private final TicketSupportoRepository ticketRepository;
     private final MezzoRepository mezzoRepository;
-    private final UtenteRepository utenteRepository; // Aggiunto per le segnalazioni
+    private final UtenteDAO UtenteDAO; // Aggiunto per le segnalazioni
 
-    @Autowired
-    public GestoreAssistenza(TicketSupportoRepository ticketRepository, MezzoRepository mezzoRepository, UtenteRepository utenteRepository) {
+   
+    public GestoreAssistenza(TicketSupportoRepository ticketRepository, MezzoRepository mezzoRepository, UtenteDAO UtenteDAO) {
         this.ticketRepository = ticketRepository;
         this.mezzoRepository = mezzoRepository;
-        this.utenteRepository = utenteRepository;
+        this.UtenteDAO = UtenteDAO;
     }
 
     // IF-29: Recupera i ticket aperti
@@ -47,7 +46,7 @@ public class GestoreAssistenza {
     // NUOVO IF-22: L'utente segnala un guasto
     @Transactional
     public void apriTicketUtente(String idUtente, String tipologia, String descrizione) {
-        Utente utente = utenteRepository.findById(idUtente).orElseThrow(() -> new RuntimeException("Utente non trovato"));
+        Utente utente = UtenteDAO.findById(idUtente).orElseThrow(() -> new RuntimeException("Utente non trovato"));
         TicketSupporto nuovoTicket = new TicketSupporto("TKT_" + System.currentTimeMillis(), tipologia, descrizione, utente);
         ticketRepository.save(nuovoTicket);
     }

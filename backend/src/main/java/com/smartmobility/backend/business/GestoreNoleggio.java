@@ -13,17 +13,17 @@ public class GestoreNoleggio {
 
     private final CorsaRepository corsaRepository;
     private final MezzoRepository mezzoRepository;
-    private final UtenteRepository utenteRepository;
+    private final UtenteDAO UtenteDAO;
     private final ISensorAPI sensoriIoT;
     private final GestoreFlotta gestoreFlotta;
 
     
     public GestoreNoleggio(CorsaRepository corsaRepository, MezzoRepository mezzoRepository, 
-                           UtenteRepository utenteRepository, 
+                           UtenteDAO UtenteDAO, 
                            ISensorAPI sensoriIoT, GestoreFlotta gestoreFlotta) {
         this.corsaRepository = corsaRepository;
         this.mezzoRepository = mezzoRepository;
-        this.utenteRepository = utenteRepository;
+        this.UtenteDAO = UtenteDAO;
         this.sensoriIoT = sensoriIoT;
         this.gestoreFlotta = gestoreFlotta;
     }
@@ -49,7 +49,7 @@ public class GestoreNoleggio {
 
     @Transactional
     public String avviaCorsa(String idUtente, String idMezzo) {
-        Utente utente = utenteRepository.findById(idUtente).orElseThrow();
+        Utente utente = UtenteDAO.findById(idUtente).orElseThrow();
         Mezzo mezzo = mezzoRepository.findById(idMezzo).orElseThrow();
 
         if ("Prenotato".equals(mezzo.getStatoOperativo())) {
@@ -63,6 +63,7 @@ public class GestoreNoleggio {
         mezzo.setStatoOperativo("In Uso");
         mezzo.setIdUtentePrenotante(null); 
         mezzo.setScadenzaPrenotazione(null);
+        mezzo.aggiornaTelemetria(mezzo.getCoordinateAttuali(), mezzo.getLivelloBatteria() - 1);
         mezzoRepository.save(mezzo);
 
         Corsa nuovaCorsa = new Corsa("C_" + System.currentTimeMillis(), utente, mezzo, new Timestamp(System.currentTimeMillis()));
@@ -75,6 +76,7 @@ public class GestoreNoleggio {
         Corsa corsa = corsaRepository.findById(idCorsa).orElseThrow(() -> new RuntimeException("Corsa non trovata"));
         if (!sensoriIoT.inviaComandoBlocco(corsa.getMezzo().getIdSensore())) throw new RuntimeException("Errore IoT");
         corsa.mettiInPausa();
+        
         corsaRepository.save(corsa);
     }
 
