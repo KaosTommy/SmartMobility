@@ -45,7 +45,7 @@ public class DataSeeder implements CommandLineRunner {
 
         UtenteDAO.saveAll(List.of(u1, u2, u3, u4));
 
-       // 3. POPOLAMENTO FLOTTA ESPANSA (Zootropolis)
+       // 3. POPOLAMENTO FLOTTA ESPANSA (bari)
         // Monopattini
         Monopattino m1 = new Monopattino("MN_001", "SENS_M1"); 
         m1.setCoordinateAttuali(new Coordinate(41.1171, 16.8718));
