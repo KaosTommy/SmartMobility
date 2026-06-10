@@ -1,11 +1,9 @@
 package com.smartmobility.backend.api;
 
-import com.smartmobility.backend.model.HubRicarica;
-import com.smartmobility.backend.repository.HubRicaricaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.smartmobility.backend.model.StazioneRicarica;
+import com.smartmobility.backend.repository.StazioneRicaricaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -13,16 +11,14 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class MappaRestController {
 
-    private final HubRicaricaRepository hubRepository;
+    private final StazioneRicaricaRepository stazioneRepository;
 
-    @Autowired
-    public MappaRestController(HubRicaricaRepository hubRepository) {
-        this.hubRepository = hubRepository;
+    public MappaRestController(StazioneRicaricaRepository stazioneRepository) {
+        this.stazioneRepository = stazioneRepository;
     }
 
-    // IF-15: Il frontend chiede la lista delle stazioni di ricarica da disegnare
     @GetMapping("/hubs")
-    public ResponseEntity<List<HubRicarica>> getStazioniDiRicarica() {
-        return ResponseEntity.ok(hubRepository.findAll());
+    public ResponseEntity<List<StazioneRicarica>> getStazioni() {
+        return ResponseEntity.ok(stazioneRepository.findAll());
     }
 }

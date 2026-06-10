@@ -3,10 +3,10 @@ package com.smartmobility.backend.business;
 import com.smartmobility.backend.integration.ISensorAPI;
 import com.smartmobility.backend.model.*;
 import com.smartmobility.backend.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Service
 public class GestoreNoleggio {
@@ -17,7 +17,7 @@ public class GestoreNoleggio {
     private final ISensorAPI sensoriIoT;
     private final GestoreFlotta gestoreFlotta;
 
-    @Autowired
+    
     public GestoreNoleggio(CorsaRepository corsaRepository, MezzoRepository mezzoRepository, 
                            UtenteRepository utenteRepository, 
                            ISensorAPI sensoriIoT, GestoreFlotta gestoreFlotta) {
@@ -106,5 +106,9 @@ public class GestoreNoleggio {
         mezzoRepository.save(mezzo);
 
         return new Ricevuta("REC_" + System.currentTimeMillis(), 2.50f);
+    }
+    // IF-13
+    public List<Corsa> estraiStoricoCorse(String idUtente) {
+        return corsaRepository.findByUtente_Id(idUtente);
     }
 }

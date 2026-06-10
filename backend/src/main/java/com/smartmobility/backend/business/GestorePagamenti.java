@@ -8,7 +8,6 @@ import com.smartmobility.backend.repository.CorsaRepository;
 import com.smartmobility.backend.repository.MetodoPagamentoRepository;
 import com.smartmobility.backend.repository.PagamentoRepository;
 import com.smartmobility.backend.repository.UtenteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +22,7 @@ public class GestorePagamenti {
     // GAP 5: Aggiunto il repository fisico dei pagamenti
     private final PagamentoRepository pagamentoRepository; 
 
-    @Autowired
+   
     public GestorePagamenti(MetodoPagamentoRepository metodoRepository, UtenteRepository utenteRepository, 
                             CorsaRepository corsaRepository, PagamentoRepository pagamentoRepository) {
         this.metodoRepository = metodoRepository;
@@ -32,14 +31,19 @@ public class GestorePagamenti {
         this.pagamentoRepository = pagamentoRepository;
     }
 
+    // SOSTITUISCI IL VECCHIO "aggiungiCarta" CON QUESTO:
     @Transactional
-    public void aggiungiCarta(String idUtente, String numeroCarta, String intestatario, String scadenza) {
+    public boolean salvaMetodoPagamento(String idUtente, String datiCarta, String intestatario, String scadenza) {
         Utente utente = utenteRepository.findById(idUtente)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
         
-        String cartaOscurata = "**** **** **** " + numeroCarta.substring(numeroCarta.length() - 4);
+        // Oscuramento carta simulato
+        String cartaOscurata = "**** **** **** " + datiCarta.substring(Math.max(0, datiCarta.length() - 4));
         MetodoPagamento nuovoMetodo = new MetodoPagamento("CARD_" + System.currentTimeMillis(), cartaOscurata, intestatario, scadenza, utente);
         metodoRepository.save(nuovoMetodo);
+        
+        // IF-4 prevede ritorno boolean
+        return true; 
     }
 
     public List<MetodoPagamento> getCarteUtente(String idUtente) {

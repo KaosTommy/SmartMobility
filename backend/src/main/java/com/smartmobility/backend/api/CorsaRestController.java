@@ -2,11 +2,12 @@ package com.smartmobility.backend.api;
 
 import com.smartmobility.backend.api.dto.*;
 import com.smartmobility.backend.business.*;
+import com.smartmobility.backend.model.Corsa;
 import com.smartmobility.backend.model.Ricevuta;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/corse")
@@ -16,7 +17,7 @@ public class CorsaRestController {
     private final GestoreNoleggio gestoreNoleggio;
     private final GestorePagamenti gestorePagamenti;
 
-    @Autowired
+
     public CorsaRestController(GestoreNoleggio gestoreNoleggio, GestorePagamenti gestorePagamenti) {
         this.gestoreNoleggio = gestoreNoleggio;
         this.gestorePagamenti = gestorePagamenti;
@@ -89,5 +90,10 @@ public class CorsaRestController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
+    }
+// IF-13 Consultazione Storico
+    @GetMapping("/storico/{idUtente}")
+    public ResponseEntity<List<Corsa>> estraiStoricoCorse(@PathVariable String idUtente) {
+        return ResponseEntity.ok(gestoreNoleggio.estraiStoricoCorse(idUtente));
     }
 }
